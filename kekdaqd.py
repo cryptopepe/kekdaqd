@@ -43,7 +43,7 @@ def get_address (db, address):
     address_dict['cancels'] = util.api('get_cancels', {'filters': [('source', '==', address),]})
     address_dict['rps'] = util.api('get_rps', {'filters': [('source', '==', address),]})
     address_dict['rps_matches'] = util.api('get_rps_matches', {'filters': [('tx0_address', '==', address), ('tx1_address', '==', address)], 'filterop': 'or'})
-    address_dict['callbacks'] = util.api('get_callbacks', {'filters': [('source', '==', address),]})
+    address_dict['card_images'] = util.api('get_card_images', {'filters': [('source', '==', address),]})
     address_dict['bet_expirations'] = util.api('get_bet_expirations', {'filters': [('source', '==', address),]})
     address_dict['order_expirations'] = util.api('get_order_expirations', {'filters': [('source', '==', address),]})
     address_dict['rps_expirations'] = util.api('get_rps_expirations', {'filters': [('source', '==', address),]})
@@ -608,9 +608,9 @@ if __name__ == '__main__':
     parser_issuance.add_argument('--asset', required=True, help='the name of the asset to be issued (if it’s available)')
     parser_issuance.add_argument('--divisible', action='store_true', help='whether or not the asset is divisible (must agree with previous issuances)')
 ########### This functionality to be changed to card image/series/number modification
-#    parser_issuance.add_argument('--callable', dest='callable_', action='store_true', help='whether or not the asset is callable (must agree with previous issuances)')
-#    parser_issuance.add_argument('--call-date', help='the date from which a callable asset may be called back (must agree with previous issuances)')
-#    parser_issuance.add_argument('--call-price', help='the price, in XCP per whole unit, at which a callable asset may be called back (must agree with previous issuances)')
+#    parser_issuance.add_argument('--card_image', dest='card_image_', action='store_true', help='whether or not the asset is card_image (must agree with previous issuances)')
+#    parser_issuance.add_argument('--call-date', help='the date from which a card_image asset may be called back (must agree with previous issuances)')
+#    parser_issuance.add_argument('--call-price', help='the price, in XCP per whole unit, at which a card_image asset may be called back (must agree with previous issuances)')
     parser_issuance.add_argument('--description', type=str, required=True, help='a description of the asset (set to ‘LOCK’ to lock against further issuances with non‐zero quantitys)')
     parser_issuance.add_argument('--fee', help='the exact {} fee to be paid to miners'.format(config.BTC))
 
@@ -632,11 +632,11 @@ if __name__ == '__main__':
     parser_cancel.add_argument('--fee', help='the exact {} fee to be paid to miners'.format(config.BTC))
 
 ########### This functionality to be changed to card image/series/number modification
-#    parser_callback = subparsers.add_parser('callback', help='callback a fraction of an asset')
-#    parser_callback.add_argument('--source', required=True, help='the source address')
-#    parser_callback.add_argument('--fraction', required=True, help='the fraction of ASSET to call back')
-#    parser_callback.add_argument('--asset', required=True, help='the asset to callback')
-#    parser_callback.add_argument('--fee', help='the exact {} fee to be paid to miners'.format(config.BTC))
+#    parser_card_image = subparsers.add_parser('card_image', help='card_image a fraction of an asset')
+#    parser_card_image.add_argument('--source', required=True, help='the source address')
+#    parser_card_image.add_argument('--fraction', required=True, help='the fraction of ASSET to call back')
+#    parser_card_image.add_argument('--asset', required=True, help='the asset to card_image')
+#    parser_card_image.add_argument('--fee', help='the exact {} fee to be paid to miners'.format(config.BTC))
 
     parser_publish = subparsers.add_parser('publish', help='publish arbitrary data in the blockchain')
     parser_publish.add_argument('--source', required=True, help='the source address')
@@ -797,22 +797,22 @@ if __name__ == '__main__':
         if args.fee: args.fee = util.devise(db, args.fee, config.BTC, 'input')
         quantity = util.devise(db, args.quantity, None, 'input',
                                divisible=args.divisible)
-        if args.callable_:
-            if not args.call_date:
-                parser.error('must specify call date of callable asset', )
-            if not args.call_price:
-                parser.error('must specify call price of callable asset')
-            call_date = calendar.timegm(dateutil.parser.parse(args.call_date).utctimetuple())
-            call_price = float(args.call_price)
+        if args.card_image_:
+            if not args.card_series:
+                parser.error('must specify call date of card_image asset', )
+            if not args.card_number:
+                parser.error('must specify call price of card_image asset')
+            card_series = calendar.timegm(dateutil.parser.parse(args.card_series).utctimetuple())
+            card_number = float(args.card_number)
         else:
-            call_date, call_price = 0, 0
+            card_series, card_number = 0, 0
 
         cli('create_issuance', {'source': args.source, 'asset': args.asset,
                                 'quantity': quantity, 'divisible':
                                 args.divisible, 'description':
-                                args.description, 'callable_': args.callable_,
-                                'call_date': call_date, 'call_price':
-                                call_price, 'transfer_destination':
+                                args.description, 'card_image_': args.card_image_,
+                                'card_series': card_series, 'card_number':
+                                card_number, 'transfer_destination':
                                 args.transfer_destination, 'fee': args.fee,
                                 'allow_unconfirmed_inputs': args.unconfirmed,
                                 'encoding': args.encoding, 'fee_per_kb':
@@ -852,9 +852,9 @@ if __name__ == '__main__':
         args.unsigned)
 
 ######## This functionality to be changed to card image/series/number modification
-#    elif args.action == 'callback':
+#    elif args.action == 'card_image':
 #        if args.fee: args.fee = util.devise(db, args.fee, config.BTC, 'input')
-#        cli('create_callback', {'source': args.source,
+#        cli('create_card_image', {'source': args.source,
 #                                'fraction': util.devise(db, args.fraction, 'fraction', 'input'),
 #                                'asset': args.asset, 'fee': args.fee,
 #                                'allow_unconfirmed_inputs': args.unconfirmed,
@@ -910,8 +910,8 @@ if __name__ == '__main__':
         asset_id = util.asset_id(args.asset)
         divisible = results['divisible']
         supply = util.devise(db, results['supply'], args.asset, dest='output')
-        call_date = util.isodt(results['call_date']) if results['call_date'] else results['call_date']
-        call_price = str(results['call_price']) + ' XCP' if results['call_price'] else results['call_price']
+        card_series = util.isodt(results['card_series']) if results['card_series'] else results['card_series']
+        card_number = str(results['card_number']) + ' XCP' if results['card_number'] else results['card_number']
 
         print('Asset/Card Name:', args.asset)
         print('Asset/Card ID:', asset_id)
@@ -919,9 +919,9 @@ if __name__ == '__main__':
         print('Supply:', supply)
         print('Issuer:', results['issuer'])
 #   Callback functionality removed for compliance. Leaving data structures intact to later use this space for card exists Y/N, series number, and card number
-        print('Card Image:', results['callable'])
-        print('Card Series:', call_date)
-        print('Card Number:', call_price)
+        print('Card Image:', results['card_image'])
+        print('Card Series:', card_series)
+        print('Card Number:', card_number)
         print('Description:', '‘' + results['description'] + '’')
 
         if args.asset != config.BTC:

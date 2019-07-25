@@ -73,7 +73,7 @@ class BTCPayError (MessageError):
     pass
 class CancelError (MessageError):
     pass
-class CallbackError (MessageError):
+class Card_ImageError (MessageError):
     pass
 class RpsError (MessageError):
     pass

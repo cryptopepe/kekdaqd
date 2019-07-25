@@ -23,11 +23,11 @@ import jsonrpc
 from jsonrpc import dispatcher
 
 from . import (config, bitcoin, exceptions, util)
-from . import (send, order, btcpay, issuance, broadcast, bet, dividend, burn, cancel, callback, rps, rpsresolve, publish)
+from . import (send, order, btcpay, issuance, broadcast, bet, dividend, burn, cancel, card_image, rps, rpsresolve, publish)
 
 
 API_TABLES = ['balances', 'credits', 'debits', 'bets', 'bet_matches',
-              'broadcasts', 'btcpays', 'burns', 'callbacks', 'cancels',
+              'broadcasts', 'btcpays', 'burns', 'card_images', 'cancels',
               'dividends', 'issuances', 'orders', 'order_matches', 'sends',
               'bet_expirations', 'order_expirations', 'bet_match_expirations',
               'order_match_expirations', 'bet_match_resolutions', 'rps',
@@ -35,7 +35,7 @@ API_TABLES = ['balances', 'credits', 'debits', 'bets', 'bet_matches',
               'mempool']
 
 API_TRANSACTIONS = ['bet', 'broadcast', 'btcpay', 'burn', 'cancel',
-                    'callback', 'dividend', 'issuance', 'order', 'send',
+                    'card_image', 'dividend', 'issuance', 'order', 'send',
                     'rps', 'rpsresolve', 'publish']
 
 COMMONS_ARGS = ['encoding', 'fee_per_kb', 'regular_dust_size',
@@ -49,12 +49,12 @@ current_api_status_response_json = None #is updated by the APIStatusPoller
 
 
 # TODO: ALL queries EVERYWHERE should be done with these methods
-def db_query(db, statement, bindings=(), callback=None, **callback_args):
+def db_query(db, statement, bindings=(), card_image=None, **card_image_args):
     cursor = db.cursor()
-    if hasattr(callback, '__call__'):
+    if hasattr(card_image, '__call__'):
         cursor.execute(statement, bindings)
         for row in cursor:
-            callback(row, **callback_args)
+            card_image(row, **card_image_args)
         results = None
     else:
         results = list(cursor.execute(statement, bindings))
@@ -401,9 +401,9 @@ class APIServer(threading.Thread):
                         'divisible': True,
                         'locked': False,
                         'supply': supply,
-                        'callable': False,
-                        'call_date': None,
-                        'call_price': None,
+                        'card_image': False,
+                        'card_series': None,
+                        'card_number': None,
                         'description': '',
                         'issuer': None
                     })
@@ -426,9 +426,9 @@ class APIServer(threading.Thread):
                     'divisible': bool(last_issuance['divisible']),
                     'locked': locked,
                     'supply': supply,
-                    'callable': bool(last_issuance['callable']),
-                    'call_date': last_issuance['call_date'],
-                    'call_price': last_issuance['call_price'],
+                    'card_image': bool(last_issuance['card_image']),
+                    'card_series': last_issuance['card_series'],
+                    'card_number': last_issuance['card_number'],
                     'description': last_issuance['description'],
                     'issuer': last_issuance['issuer']})
             return assetsInfo
@@ -514,7 +514,7 @@ class APIServer(threading.Thread):
             cursor = db.cursor()
             for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends', 'orders',
                 'order_matches', 'btcpays', 'issuances', 'broadcasts', 'bets', 'bet_matches', 'dividends',
-                'burns', 'cancels', 'callbacks', 'order_expirations', 'bet_expirations', 'order_match_expirations',
+                'burns', 'cancels', 'card_images', 'order_expirations', 'bet_expirations', 'order_match_expirations',
                 'bet_match_expirations', 'messages']:
                 cursor.execute("SELECT COUNT(*) AS count FROM %s" % element)
                 count_list = cursor.fetchall()

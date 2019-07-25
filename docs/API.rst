@@ -219,7 +219,7 @@ Examples:
 floats
 ^^^^^^^^^^^^^^^^^^^^
 
-Floats are are ratios or floating point values with six decimal places of precision, used in bets, dividends and callbacks.
+Floats are are ratios or floating point values with six decimal places of precision, used in bets, dividends and card_images.
 
 .. _filtering:
 
@@ -309,7 +309,7 @@ limit=1000, offset=0, show_expired=True)**
 
 **{table}** must be one of the following values:
 ``balances``, ``credits``, ``debits``, ``bets``, ``bet_matches``, ``broadcasts``, ``btcpays``, ``burns``, 
-``callbacks``, ``cancels``, ``dividends``, ``issuances``, ``orders``, ``order_matches``, ``sends``, 
+``card_images``, ``cancels``, ``dividends``, ``issuances``, ``orders``, ``order_matches``, ``sends``, 
 ``bet_expirations``, ``order_expirations``, ``bet_match_expirations``, ``order_match_expirations``,
 ``rps``, ``rps_expirations``, ``rps_matches``, ``rps_match_expirations``, or ``rpsresolves``.
 
@@ -378,9 +378,9 @@ Gets information on an issued asset.
   - **divisible** (*boolean*): Whether the asset is divisible or not
   - **locked** (*boolean*): Whether the asset is locked (future issuances prohibited)
   - **total_issued** (*integer*): The :ref:`quantity <quantitys>` of the asset issued, in total
-  - **callable** (*boolean*): If the asset is callable or not
-  - **call_date** (*integer*): The call date, as an epoch timestamp
-  - **call_price** (*float*): The call price
+  - **card_image** (*boolean*): If the asset is card_image or not
+  - **card_series** (*integer*): The call date, as an epoch timestamp
+  - **card_number** (*float*): The call price
   - **description** (*string*): The asset's current description
   - **issuer** (*string*): The asset's original owner (i.e. issuer)
 
@@ -648,7 +648,7 @@ create_callback
 ^^^^^^^^^^^^^^^^^
 **create_callback(offer_hash, encoding='multisig', pubkey=null)**
 
-Make a call on a callable asset (where some whole or part of the asset is returned to the issuer, on or after the asset's call date).
+Make a call on a card_image asset (where some whole or part of the asset is returned to the issuer, on or after the asset's call date).
 
 **Parameters:**
 
@@ -704,7 +704,7 @@ Issue a dividend on a specific user defined asset.
 
 create_issuance
 ^^^^^^^^^^^^^^^^^
-**create_issuance(source, asset, quantity, divisible, description, callable=false, call_date=null, call_price=null, transfer_destination=null, lock=false, encoding='multisig', pubkey=null)**
+**create_issuance(source, asset, quantity, divisible, description, card_image=false, card_series=null, card_number=null, transfer_destination=null, lock=false, encoding='multisig', pubkey=null)**
 
 Issue a new asset, issue more of an existing asset, lock an asset, or transfer the ownership of an asset (note that you can only do one of these operations in a given create_issuance call).
 
@@ -714,9 +714,9 @@ Issue a new asset, issue more of an existing asset, lock an asset, or transfer t
   * **quantity (integer):** The :ref:`quantity <quantitys>` of the asset to issue (set to 0 if *transferring* an asset).
   * **asset (string):** The :ref:`asset <assets>` to issue or transfer.
   * **divisible (boolean):** Whether this asset is divisible or not (if a transfer, this value must match the value specified when the asset was originally issued).
-  * **callable (boolean):** Whether the asset is callable or not.
-  * **call_date (integer):** The timestamp at which the asset may be called back, in Unix time. Only valid for callable assets.
-  * **call_price (float):** The :ref:`price <floats>` per unit XCP at which the asset may be called back, on or after the specified call_date. Only valid for callable assets.
+  * **card_image (boolean):** Whether the asset is card_image or not.
+  * **card_series (integer):** The timestamp at which the asset may be called back, in Unix time. Only valid for card_image assets.
+  * **card_number (float):** The :ref:`price <floats>` per unit XCP at which the asset may be called back, on or after the specified card_series. Only valid for card_image assets.
   * **description (string):** A textual description for the asset. 52 bytes max.
   * **transfer_destination (string):** The address to receive the asset (only used when *transferring* assets -- leave set to ``null`` if issuing an asset).
   * **lock (boolean):** Set to ``true`` if this asset should be locked with this API call. Only valid if the asset is not already locked. To keep as-is, set this to ``false``, or simply do not specify it. 
@@ -1191,7 +1191,7 @@ Here the list of all possible status for each table:
 * **broadcasts**: valid, invalid: {problem(s)}
 * **btcpays**: valid, invalid: {problem(s)}
 * **burns**: valid, invalid: {problem(s)}
-* **callbacks**: valid, invalid: {problem(s)}
+* **card_images**: valid, invalid: {problem(s)}
 * **cancels**: valid, invalid: {problem(s)}
 * **credits**: No status field
 * **debits**: No status field

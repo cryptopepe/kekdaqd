@@ -68,7 +68,7 @@ def cancel_order (db, order, status, block_index):
 
 def cancel_order_match (db, order_match, status, block_index):
     '''
-    May only be cancelled by callbacks.'''
+    May only be cancelled by card_images.'''
 
     cursor = db.cursor()
 

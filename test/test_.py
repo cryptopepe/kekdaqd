@@ -270,7 +270,7 @@ def test_issuance_divisible ():
 
     output_new[inspect.stack()[0][3]] = unsigned_tx_hex
 
-def test_issuance_indivisible_callable ():
+def test_issuance_indivisible_card_image ():
     unsigned_tx_hex = bitcoin.transaction(issuance.compose(db, source_default, None, 'BBBC', round(quantity / 1000), False, True, 17, 0.015, 'foobar'), encoding='multisig')
 
     parse_hex(unsigned_tx_hex)
@@ -396,7 +396,7 @@ def test_overburn ():
 
     output_new[inspect.stack()[0][3]] = unsigned_tx_hex
 
-def test_send_callable ():
+def test_send_card_image ():
     unsigned_tx_hex = bitcoin.transaction(send.compose(db, source_default, destination_default, 'BBBC', 10000), encoding='multisig')
 
     parse_hex(unsigned_tx_hex)

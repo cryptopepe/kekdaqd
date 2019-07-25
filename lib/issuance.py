@@ -17,43 +17,43 @@ LENGTH_2 = 8 + 8 + 1 + 1 + 4 + 4 + 42
 ID = 20
 
 
-def validate (db, source, destination, asset, quantity, divisible, callable_, call_date, call_price, description, block_index):
+def validate (db, source, destination, asset, quantity, divisible, card_image_, card_series, card_number, description, block_index):
     problems = []
     fee = 0
 
     if asset in (config.BTC, config.XCP):
         problems.append('cannot issue {} or {}'.format(config.BTC, config.XCP))
 
-    if call_date is None: call_date = 0
-    if call_price is None: call_price = 0.0
+    if card_series is None: card_series = 0
+    if card_number is None: card_number = 0.0
 
-    if isinstance(call_price, int): call_price = float(call_price)
+    if isinstance(card_number, int): card_number = float(card_number)
     #^ helps especially with calls from JS-based clients, where parseFloat(15) returns 15 (not 15.0), which json takes as an int
 
     if not isinstance(quantity, int):
         problems.append('quantity must be in satoshis')
         return problems, fee
-    if call_date and not isinstance(call_date, int):
-        problems.append('call_date must be epoch integer')
+    if card_series and not isinstance(card_series, int):
+        problems.append('card_series must be epoch integer')
         return problems, fee
-    if call_price and not isinstance(call_price, float):
-        problems.append('call_price must be a float')
+    if card_number and not isinstance(card_number, float):
+        problems.append('card_number must be a float')
         return problems, fee
 
     if quantity < 0: problems.append('negative quantity')
-    if call_price < 0: problems.append('negative call price')
-    if call_date < 0: problems.append('negative call date')
+    if card_number < 0: problems.append('negative call price')
+    if card_series < 0: problems.append('negative call date')
 
-    # Callable, or not.
-    if not callable_:
+    # card_image, or not.
+    if not card_image_:
         if block_index >= 312500 or config.TESTNET: # Protocol change.
-            call_date = 0
-            call_price = 0.0
+            card_series = 0
+            card_number = 0.0
         elif block_index >= 310000:                 # Protocol change.
-            if call_date:
-                problems.append('call date for non‐callable asset')
-            if call_price:
-                problems.append('call price for non‐callable asset')
+            if card_series:
+                problems.append('call date for non‐card_image asset')
+            if card_number:
+                problems.append('call price for non‐card_image asset')
 
     # Valid re-issuance?
     cursor = db.cursor()
@@ -65,18 +65,18 @@ def validate (db, source, destination, asset, quantity, divisible, callable_, ca
     if issuances:
         reissuance = True
         last_issuance = issuances[-1]
-        if call_date is None: call_date = 0
-        if call_price is None: call_price = 0.0
+        if card_series is None: card_series = 0
+        if card_number is None: card_number = 0.0
 
         if last_issuance['issuer'] != source:
             problems.append('issued by another address')
         if bool(last_issuance['divisible']) != bool(divisible):
             problems.append('cannot change divisibility')
-        if bool(last_issuance['callable']) != bool(callable_):
+        if bool(last_issuance['card_image']) != bool(card_image_):
             problems.append('cannot change callability')
-        if last_issuance['call_date'] > call_date and (call_date != 0 or (block_index < 312500 and not config.TESTNET)):
+        if last_issuance['card_series'] > card_series and (card_series != 0 or (block_index < 312500 and not config.TESTNET)):
             problems.append('cannot advance call date')
-        if last_issuance['call_price'] > call_price:
+        if last_issuance['card_number'] > card_number:
             problems.append('cannot reduce call price')
         if last_issuance['locked'] and quantity:
             problems.append('locked asset and non‐zero quantity')
@@ -105,7 +105,7 @@ def validate (db, source, destination, asset, quantity, divisible, callable_, ca
                 problems.append('insufficient funds')
 
     # For SQLite3
-    call_date = min(call_date, config.MAX_INT)
+    card_series = min(card_series, config.MAX_INT)
     total = sum([issuance['quantity'] for issuance in issuances])
     assert isinstance(quantity, int)
     if total + quantity > config.MAX_INT:
@@ -114,16 +114,16 @@ def validate (db, source, destination, asset, quantity, divisible, callable_, ca
     if destination and quantity:
         problems.append('cannot issue and transfer simultaneously')
 
-    return call_date, call_price, problems, fee
+    return card_series, card_number, problems, fee
 
-def compose (db, source, transfer_destination, asset, quantity, divisible, callable_, call_date, call_price, description):
-    call_date, call_price, problems, fee = validate(db, source, transfer_destination, asset, quantity, divisible, callable_, call_date, call_price, description, util.last_block(db)['block_index'])
+def compose (db, source, transfer_destination, asset, quantity, divisible, card_image_, card_series, card_number, description):
+    card_series, card_number, problems, fee = validate(db, source, transfer_destination, asset, quantity, divisible, card_image_, card_series, card_number, description, util.last_block(db)['block_index'])
     if problems: raise exceptions.IssuanceError(problems)
 
     asset_id = util.asset_id(asset)
     data = config.PREFIX + struct.pack(config.TXTYPE_FORMAT, ID)
-    data += struct.pack(FORMAT_2, asset_id, quantity, 1 if divisible else 0, 1 if callable_ else 0,
-        call_date or 0, call_price or 0.0, description.encode('utf-8'))
+    data += struct.pack(FORMAT_2, asset_id, quantity, 1 if divisible else 0, 1 if card_image_ else 0,
+        card_series or 0, card_number or 0.0, description.encode('utf-8'))
     if len(data) > 80:
         raise exceptions.IssuanceError('Description is greater than 52 bytes.')
     if transfer_destination:
@@ -138,15 +138,15 @@ def parse (db, tx, message):
     # Unpack message.
     try:
         if (tx['block_index'] > 283271 or config.TESTNET) and len(message) == LENGTH_2: # Protocol change.
-            asset_id, quantity, divisible, callable_, call_date, call_price, description = struct.unpack(FORMAT_2, message)
-            call_price = round(call_price, 6) # TODO: arbitrary
+            asset_id, quantity, divisible, card_image_, card_series, card_number, description = struct.unpack(FORMAT_2, message)
+            card_number = round(card_number, 6) # TODO: arbitrary
             try:
                 description = description.decode('utf-8')
             except UnicodeDecodeError:
                 description = ''
         else:
             asset_id, quantity, divisible = struct.unpack(FORMAT_1, message)
-            callable_, call_date, call_price, description = False, 0, 0.0, ''
+            card_image_, card_series, card_number, description = False, 0, 0.0, ''
         try:
             asset = util.asset_name(asset_id)
         except:
@@ -154,12 +154,12 @@ def parse (db, tx, message):
             status = 'invalid: bad asset name'
         status = 'valid'
     except (AssertionError, struct.error) as e:
-        asset, quantity, divisible, callable_, call_date, call_price, description = None, None, None, None, None, None, None
+        asset, quantity, divisible, card_image_, card_series, card_number, description = None, None, None, None, None, None, None
         status = 'invalid: could not unpack'
 
     fee = 0
     if status == 'valid':
-        call_date, call_price, problems, fee = validate(db, tx['source'], tx['destination'], asset, quantity, divisible, callable_, call_date, call_price, description, block_index=tx['block_index'])
+        card_series, card_number, problems, fee = validate(db, tx['source'], tx['destination'], asset, quantity, divisible, card_image_, card_series, card_number, description, block_index=tx['block_index'])
         if problems: status = 'invalid: ' + '; '.join(problems)
         if 'total quantity overflow' in problems:
             quantity = 0
@@ -200,15 +200,15 @@ def parse (db, tx, message):
         'source': tx['source'],
         'issuer': issuer,
         'transfer': transfer,
-        'callable': callable_,
-        'call_date': call_date,
-        'call_price': call_price,
+        'card_image': card_image_,
+        'card_series': card_series,
+        'card_number': card_number,
         'description': description,
         'fee_paid': fee,
         'locked': lock,
         'status': status,
     }
-    sql='insert into issuances values(:tx_index, :tx_hash, :block_index, :asset, :quantity, :divisible, :source, :issuer, :transfer, :callable, :call_date, :call_price, :description, :fee_paid, :locked, :status)'
+    sql='insert into issuances values(:tx_index, :tx_hash, :block_index, :asset, :quantity, :divisible, :source, :issuer, :transfer, :card_image, :card_series, :card_number, :description, :fee_paid, :locked, :status)'
     issuance_parse_cursor.execute(sql, bindings)
 
     # Credit.

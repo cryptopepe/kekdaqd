@@ -117,10 +117,10 @@ def log (db, command, category, bindings):
                 else:
                     divisibility = 'indivisible'
                     unit = 1
-                if bindings['callable'] and (bindings['block_index'] > 283271 or config.TESTNET):   # Protocol change.
-                    callability = 'callable from {} for {} XCP/{}'.format(isodt(bindings['call_date']), bindings['call_price'], bindings['asset'])
+                if bindings['card_image'] and (bindings['block_index'] > 283271 or config.TESTNET):   # Protocol change.
+                    callability = 'card_image from {} for {} XCP/{}'.format(isodt(bindings['card_series']), bindings['card_number'], bindings['asset'])
                 else:
-                    callability = 'uncallable'
+                    callability = 'uncard_image'
                 try:
                     quantity = devise(db, bindings['quantity'], None, dest='output', divisible=bindings['divisible'])
                 except:
@@ -172,8 +172,8 @@ def log (db, command, category, bindings):
         elif category == 'cancels':
             logging.info('Cancel: {} ({}) [{}]'.format(bindings['offer_hash'], bindings['tx_hash'], bindings['status']))
 
-        elif category == 'callbacks':
-            logging.info('Callback: {} called back {}% of {} ({}) [{}]'.format(bindings['source'], float(D(bindings['fraction']) * D(100)), bindings['asset'], bindings['tx_hash'], bindings['status']))
+        elif category == 'card_images':
+            logging.info('Card_Images: {} called back {}% of {} ({}) [{}]'.format(bindings['source'], float(D(bindings['fraction']) * D(100)), bindings['asset'], bindings['tx_hash'], bindings['status']))
 
         elif category == 'rps':
             log_message = 'RPS: {} opens game with {} possible moves and a wager of {}'.format(bindings['source'], bindings['possible_moves'], output(bindings['wager'], 'XCP'))
@@ -706,7 +706,7 @@ def supplies (db):
     cursor.close()
     return supplies
 
-def get_url(url, abort_on_error=False, is_json=True, fetch_timeout=30):
+def get_url(url, abort_on_error=False, is_json=True, fetch_timeout=60):
     try:
         r = requests.get(url, timeout=fetch_timeout)
     except Exception as e:

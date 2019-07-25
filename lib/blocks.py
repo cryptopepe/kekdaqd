@@ -16,14 +16,14 @@ from Crypto.Cipher import ARC4
 import apsw
 
 from . import (config, exceptions, util, bitcoin)
-from . import (send, order, btcpay, issuance, broadcast, bet, dividend, burn, cancel, callback, rps, rpsresolve)
+from . import (send, order, btcpay, issuance, broadcast, bet, dividend, burn, cancel, card_image, rps, rpsresolve)
 
 # Order matters for FOREIGN KEY constraints.
 TABLES = ['credits', 'debits', 'messages'] + \
          ['bet_match_resolutions', 'order_match_expirations',
           'order_matches', 'order_expirations', 'orders', 'bet_match_expirations',
           'bet_matches', 'bet_expirations', 'bets', 'broadcasts', 'btcpays',
-          'burns', 'callbacks', 'cancels', 'dividends', 'issuances', 'sends',
+          'burns', 'card_images', 'cancels', 'dividends', 'issuances', 'sends',
           'rps_match_expirations', 'rps_expirations', 'rpsresolves', 'rps_matches', 'rps']
 
 def check_conservation (db):
@@ -74,8 +74,8 @@ def parse_tx (db, tx):
         dividend.parse(db, tx, message)
     elif message_type_id == cancel.ID:
         cancel.parse(db, tx, message)
-    elif message_type_id == callback.ID:
-        callback.parse(db, tx, message)
+    elif message_type_id == card_image.ID:
+        card_image.parse(db, tx, message)
     elif message_type_id == rps.ID and rps_enabled:
         rps.parse(db, tx, message)
     elif message_type_id == rpsresolve.ID and rps_enabled:
@@ -364,9 +364,9 @@ def initialise(db):
                       source TEXT,
                       issuer TEXT,
                       transfer BOOL,
-                      callable BOOL,
-                      call_date INTEGER,
-                      call_price REAL,
+                      card_image BOOL,
+                      card_series INTEGER,
+                      card_number REAL,
                       description TEXT,
                       fee_paid INTEGER,
                       locked BOOL,
@@ -554,8 +554,8 @@ def initialise(db):
                       source_idx ON cancels (source)
                    ''')
 
-    # Callbacks
-    cursor.execute('''CREATE TABLE IF NOT EXISTS callbacks(
+    # card_images
+    cursor.execute('''CREATE TABLE IF NOT EXISTS card_images(
                       tx_index INTEGER PRIMARY KEY,
                       tx_hash TEXT UNIQUE,
                       block_index INTEGER,
@@ -566,13 +566,13 @@ def initialise(db):
                       FOREIGN KEY (tx_index, tx_hash, block_index) REFERENCES transactions(tx_index, tx_hash, block_index))
                    ''')
     cursor.execute('''CREATE INDEX IF NOT EXISTS
-                      block_index_idx ON callbacks (block_index)
+                      block_index_idx ON card_images (block_index)
                    ''')
     cursor.execute('''CREATE INDEX IF NOT EXISTS
-                      source_idx ON callbacks (source)
+                      source_idx ON card_images (source)
                    ''')
     cursor.execute('''CREATE INDEX IF NOT EXISTS
-                      asset_idx ON callbacks (asset)
+                      asset_idx ON card_images (asset)
                    ''')
 
     # RPS (Rock-Paper-Scissors)
