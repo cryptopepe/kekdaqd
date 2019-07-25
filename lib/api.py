@@ -406,6 +406,7 @@ class APIServer(threading.Thread):
                         'card_number': None,
                         'description': '',
                         'issuer': None
+                        
                     })
                     continue
 
@@ -423,9 +424,13 @@ class APIServer(threading.Thread):
                 assetsInfo.append({
                     'asset': asset,
                     'owner': last_issuance['issuer'],
+                    'block_index': last_issuance['block_index'],
                     'divisible': bool(last_issuance['divisible']),
                     'locked': locked,
                     'supply': supply,
+##############
+##          Card implementation
+###########
                     'card_image': bool(last_issuance['card_image']),
                     'card_series': last_issuance['card_series'],
                     'card_number': last_issuance['card_number'],

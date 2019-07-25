@@ -37,19 +37,10 @@ def get_address (db, address):
     address_dict['btcpays'] = util.api('get_btcpays', {'filters': [('source', '==', address), ('destination', '==', address)], 'filterop': 'or'})
     address_dict['issuances'] = util.api('get_issuances', {'filters': [('source', '==', address),]})
     address_dict['broadcasts'] = util.api('get_broadcasts', {'filters': [('source', '==', address),]})
-    address_dict['bets'] = util.api('get_bets', {'filters': [('source', '==', address),]})
-    address_dict['bet_matches'] = util.api('get_bet_matches', {'filters': [('tx0_address', '==', address), ('tx1_address', '==', address)], 'filterop': 'or'})
-    address_dict['dividends'] = util.api('get_dividends', {'filters': [('source', '==', address),]})
     address_dict['cancels'] = util.api('get_cancels', {'filters': [('source', '==', address),]})
-    address_dict['rps'] = util.api('get_rps', {'filters': [('source', '==', address),]})
-    address_dict['rps_matches'] = util.api('get_rps_matches', {'filters': [('tx0_address', '==', address), ('tx1_address', '==', address)], 'filterop': 'or'})
     address_dict['card_images'] = util.api('get_card_images', {'filters': [('source', '==', address),]})
-    address_dict['bet_expirations'] = util.api('get_bet_expirations', {'filters': [('source', '==', address),]})
     address_dict['order_expirations'] = util.api('get_order_expirations', {'filters': [('source', '==', address),]})
-    address_dict['rps_expirations'] = util.api('get_rps_expirations', {'filters': [('source', '==', address),]})
-    address_dict['bet_match_expirations'] = util.api('get_bet_match_expirations', {'filters': [('tx0_address', '==', address), ('tx1_address', '==', address)], 'filterop': 'or'})
     address_dict['order_match_expirations'] = util.api('get_order_match_expirations', {'filters': [('tx0_address', '==', address), ('tx1_address', '==', address)], 'filterop': 'or'})
-    address_dict['rps_match_expirations'] = util.api('get_rps_match_expirations', {'filters': [('tx0_address', '==', address), ('tx1_address', '==', address)], 'filterop': 'or'})
     return address_dict
 
 
@@ -69,16 +60,6 @@ def format_order (order):
         price_assets = give_asset + '/' + get_asset + ' bid'
 
     return [D(give_remaining), give_asset, price, price_assets, str(order['fee_required'] / config.UNIT), str(order['fee_provided'] / config.UNIT), order['expire_index'] - util.last_block(db)['block_index'], order['tx_hash']]
-
-def format_bet (bet):
-    odds = D(bet['counterwager_quantity']) / D(bet['wager_quantity'])
-
-    if not bet['target_value']: target_value = None
-    else: target_value = bet['target_value']
-    if not bet['leverage']: leverage = None
-    else: leverage = util.devise(db, D(bet['leverage']) / 5040, 'leverage', 'output')
-
-    return [util.BET_TYPE_NAME[bet['bet_type']], bet['feed_address'], util.isodt(bet['deadline']), target_value, leverage, str(bet['wager_remaining'] / config.UNIT) + ' XCP', util.devise(db, odds, 'odds', 'output'), bet['expire_index'] - util.last_block(db)['block_index'], bet['tx_hash']]
 
 def format_order_match (db, order_match):
     order_match_id = order_match['tx0_hash'] + order_match['tx1_hash']
@@ -122,16 +103,6 @@ def market (give_asset, get_asset):
         table.add_row(order)
     print('Open Orders')
     table = table.get_string(sortby='Price')
-    print(table)
-    print('\n')
-
-    # Open bets.
-    bets = util.api('get_bets', {'status': 'open'})
-    table = PrettyTable(['Bet Type', 'Feed Address', 'Deadline', 'Target Value', 'Leverage', 'Wager', 'Odds', 'Time Left', 'Tx Hash'])
-    for bet in bets:
-        bet = format_bet(bet)
-        table.add_row(bet)
-    print('Open Bets')
     print(table)
     print('\n')
 
@@ -618,7 +589,7 @@ if __name__ == '__main__':
     parser_broadcast.add_argument('--source', required=True, help='the source address')
     parser_broadcast.add_argument('--text', type=str, required=True, help='the textual part of the broadcast (set to ‘LOCK’ to lock feed)')
     parser_broadcast.add_argument('--value', type=float, default=-1, help='numerical value of the broadcast')
-    parser_broadcast.add_argument('--fee-fraction', default=0, help='the fraction of bets on this feed that go to its operator')
+    parser_broadcast.add_argument('--fee-fraction', default=0, help='0 fee to node operator by default')
     parser_broadcast.add_argument('--fee', help='the exact {} fee to be paid to miners'.format(config.BTC))
 
     parser_burn = subparsers.add_parser('burn', help='destroy {} tm earn XCP, during an initial period of time')
@@ -910,12 +881,19 @@ if __name__ == '__main__':
         asset_id = util.asset_id(args.asset)
         divisible = results['divisible']
         supply = util.devise(db, results['supply'], args.asset, dest='output')
-        card_series = util.isodt(results['card_series']) if results['card_series'] else results['card_series']
-        card_number = str(results['card_number']) + ' XCP' if results['card_number'] else results['card_number']
-
+        card_series = 0
+        card_number = 0
+##############
+##############
+##     To be implemented: store a series number and card number in series. For now, set to 0
+#
+#        card_series = util.isodt(results['card_series']) if results['card_series'] else results['card_series']
+#        card_number = str(results['card_number']) + ' XCP' if results['card_number'] else results['card_number']
+##############
         print('Asset/Card Name:', args.asset)
         print('Asset/Card ID:', asset_id)
         print('Divisible:', divisible)
+        print('Creation Block:', results['block_index'])
         print('Supply:', supply)
         print('Issuer:', results['issuer'])
 #   Callback functionality removed for compliance. Leaving data structures intact to later use this space for card exists Y/N, series number, and card number
