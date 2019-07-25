@@ -207,9 +207,8 @@ def set_options (data_dir=None, backend_rpc_connect=None,
         configfile.read(config_path)
         has_config = 'Default' in configfile
 
-    print("Config file loaded from: %s; Exists: %s" % (config_path, "Yes" if has_config else "No"))
-    print("Loading kekdaqd database files from %s. . ." % str(config.DATA_DIR))
-
+    print("Config file read from: %s" % (config_path))
+    print("Scanning kekdaqd database from %s. . ." % str(config.DATA_DIR))
 
     # testnet
     if testnet:
